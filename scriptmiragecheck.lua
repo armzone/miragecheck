@@ -107,7 +107,7 @@ end
 -- เริ่มต้นการตรวจสอบ Mirage Island ทุก ๆ 15 วินาที
 while true do
     checkMirageIsland()
-    wait(15) -- รอ 15 วินาทีก่อนตรวจสอบอีกครั้ง
+    wait(10) -- รอ 15 วินาทีก่อนตรวจสอบอีกครั้ง
 end
 
 -- เงื่อนไขเพิ่มเติม: ตรวจสอบ PlaceId และเรียกใช้ TravelZou หากไม่ตรงตามที่ต้องการ
@@ -115,7 +115,7 @@ while true do
     if game.PlaceId == 7449423635 then
         break
     else
-        wait(30)
+        wait(10)
         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
     end
 end
