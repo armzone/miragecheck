@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
 -- URL ของ Firebase ที่เก็บข้อมูลล่าสุด
 local serverUrl = "https://jobid-1e3dc-default-rtdb.asia-southeast1.firebasedatabase.app/All-mirage/Mirage.json"
@@ -21,10 +22,12 @@ statusLabel.TextSize = 24
 statusLabel.Text = "Mirage : 🔴"
 statusLabel.BackgroundTransparency = 0.3
 
+-- เพิ่ม UICorner เพื่อทำให้พื้นหลังมีขอบโค้งมน
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = statusLabel
 
+-- ฟังก์ชันสำหรับการดึงข้อมูลจาก Firebase
 local function getLatestMessagesFromFirebase(url)
     local response = game:HttpGet(url)
     if response then
@@ -41,6 +44,7 @@ local function getLatestMessagesFromFirebase(url)
     end
 end
 
+-- ฟังก์ชันสำหรับตรวจสอบเวลาให้อยู่ระหว่าง 13:00 ถึง 02:00
 local function isTimeInRange(timeStr)
     local hour, minute = timeStr:match("(%d+):(%d+)")
     hour = tonumber(hour)
@@ -53,6 +57,7 @@ local function isTimeInRange(timeStr)
     end
 end
 
+-- ฟังก์ชันสำหรับสุ่มเลือกโหนดที่มี players น้อยกว่า 12 และเวลาตรงตามเงื่อนไข
 local function selectRandomNode(nodes)
     local validNodes = {}
 
@@ -73,6 +78,7 @@ local function selectRandomNode(nodes)
     end
 end
 
+-- ฟังก์ชันหลักสำหรับตรวจสอบและเทเลพอร์ต
 local function checkForBestNodeAndTeleport()
     local latestMessages = getLatestMessagesFromFirebase(serverUrl)
 
@@ -92,6 +98,7 @@ local function checkForBestNodeAndTeleport()
     end
 end
 
+-- ฟังก์ชันสำหรับตรวจสอบ Mirage Island
 local function checkMirageIsland()
     local mirageIsland = game:GetService("Workspace")["_WorldOrigin"].Locations:FindFirstChild("Mirage Island")
     if mirageIsland then
@@ -104,18 +111,18 @@ local function checkMirageIsland()
     end
 end
 
--- เริ่มต้นการตรวจสอบ Mirage Island ทุก ๆ 15 วินาที
-while true do
-    checkMirageIsland()
-    wait(10) -- รอ 15 วินาทีก่อนตรวจสอบอีกครั้ง
-end
-
--- เงื่อนไขเพิ่มเติม: ตรวจสอบ PlaceId และเรียกใช้ TravelZou หากไม่ตรงตามที่ต้องการ
+-- ตรวจสอบ PlaceId ก่อนเริ่มฟังก์ชันหลัก
 while true do
     if game.PlaceId == 7449423635 then
         break
     else
-        wait(10)
+        wait(20)
         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
     end
 end
+
+-- เริ่มต้นการตรวจสอบ Mirage Island
+checkMirageIsland()
+
+-- ติดตามการเปลี่ยนแปลงของ Mirage Island
+RunService.Heartbeat:Connect(checkMirageIsland)
