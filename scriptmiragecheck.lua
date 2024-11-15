@@ -3,8 +3,8 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
--- URL ของ Firebase ที่เก็บข้อมูลล่าสุด
-local serverUrl = "https://jobid-1e3dc-default-rtdb.asia-southeast1.firebasedatabase.app/All-mirage/Mirage.json"
+-- URL ใหม่สำหรับดึงข้อมูล Mirage
+local serverUrl = "http://223.206.145.158:5000/Mirage"
 
 -- สร้าง ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -27,10 +27,13 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = statusLabel
 
--- ฟังก์ชันสำหรับการดึงข้อมูลจาก Firebase
-local function getLatestMessagesFromFirebase(url)
-    local response = game:HttpGet(url)
-    if response then
+-- ฟังก์ชันสำหรับการดึงข้อมูลจาก URL ใหม่
+local function getLatestMessagesFromServer(url)
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+
+    if success and response then
         local data = HttpService:JSONDecode(response)
         if data then
             return data
@@ -39,7 +42,7 @@ local function getLatestMessagesFromFirebase(url)
             return nil
         end
     else
-        warn("ไม่สามารถดึงข้อมูลจาก Firebase ได้")
+        warn("ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์ได้")
         return nil
     end
 end
@@ -58,7 +61,7 @@ local function isTimeInRange(timeStr)
 end
 
 -- ฟังก์ชันสำหรับสุ่มเลือกโหนดที่มี players น้อยกว่า 12 และเวลาตรงตามเงื่อนไข
-local function selectRandomNode(nodes)
+local function selectBestNode(nodes)
     local validNodes = {}
 
     for _, node in pairs(nodes) do
@@ -70,9 +73,14 @@ local function selectRandomNode(nodes)
         end
     end
 
+    table.sort(validNodes, function(a, b)
+        local timeA = tonumber(a.time:match("(%d+):%d+"))
+        local timeB = tonumber(b.time:match("(%d+):%d+"))
+        return timeA < timeB
+    end)
+
     if #validNodes > 0 then
-        local randomIndex = math.random(1, #validNodes)
-        return validNodes[randomIndex]
+        return validNodes[1] -- เลือกโหนดที่ดีที่สุด
     else
         return nil
     end
@@ -80,10 +88,10 @@ end
 
 -- ฟังก์ชันหลักสำหรับตรวจสอบและเทเลพอร์ต
 local function checkForBestNodeAndTeleport()
-    local latestMessages = getLatestMessagesFromFirebase(serverUrl)
+    local latestMessages = getLatestMessagesFromServer(serverUrl)
 
     if latestMessages then
-        local selectedNode = selectRandomNode(latestMessages)
+        local selectedNode = selectBestNode(latestMessages)
 
         if selectedNode and selectedNode.jobid then
             local player = Players.LocalPlayer
@@ -93,7 +101,7 @@ local function checkForBestNodeAndTeleport()
             wait(10)
         end
     else
-        warn("ไม่พบข้อมูลจาก Firebase หรือไม่สามารถดึงข้อมูลได้")
+        warn("ไม่พบข้อมูลจากเซิร์ฟเวอร์หรือไม่สามารถดึงข้อมูลได้")
         wait(10)
     end
 end
@@ -107,6 +115,7 @@ local function checkMirageIsland()
         checkForBestNodeAndTeleport()
     else
         statusLabel.Text = "Mirage : 🔴"
+        wait(5) -- เพิ่มเวลาให้รอเพื่อลดการใช้ทรัพยากร
         checkForBestNodeAndTeleport()
     end
 end
@@ -116,7 +125,7 @@ while true do
     if game.PlaceId == 7449423635 then
         break
     else
-        wait(20)
+        wait(10)
         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
     end
 end
