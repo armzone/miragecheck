@@ -130,8 +130,8 @@ while true do
     end
 end
 
--- เริ่มต้นการตรวจสอบ Mirage Island
-checkMirageIsland()
-
--- ติดตามการเปลี่ยนแปลงของ Mirage Island
-RunService.Heartbeat:Connect(checkMirageIsland)
+-- ลูปตรวจสอบ Mirage Island ทุกๆ 5 วินาที
+while true do
+    checkMirageIsland()
+    wait(5) -- รอ 5 วินาที ก่อนตรวจสอบอีกครั้ง
+end
