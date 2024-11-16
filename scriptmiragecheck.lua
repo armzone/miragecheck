@@ -110,13 +110,11 @@ end
 local function checkMirageIsland()
     local mirageIsland = game:GetService("Workspace")["_WorldOrigin"].Locations:FindFirstChild("Mirage Island")
     if mirageIsland then
+        mirageExists = true -- ตั้งสถานะว่า Mirage มีอยู่
         statusLabel.Text = "Mirage : 🟢"
-        mirageIsland.AncestryChanged:Wait()
-        checkForBestNodeAndTeleport()
     else
+        mirageExists = false -- ตั้งสถานะว่า Mirage ไม่มี
         statusLabel.Text = "Mirage : 🔴"
-        wait(5) -- เพิ่มเวลาให้รอเพื่อลดการใช้ทรัพยากร
-        checkForBestNodeAndTeleport()
     end
 end
 
@@ -130,8 +128,22 @@ while true do
     end
 end
 
--- ลูปตรวจสอบ Mirage Island ทุกๆ 5 วินาที
-while true do
-    checkMirageIsland()
-    wait(5) -- รอ 5 วินาที ก่อนตรวจสอบอีกครั้ง
-end
+-- ลูปสำหรับการตรวจสอบ Mirage Island ทุกๆ 5 วินาที
+coroutine.wrap(function()
+    while true do
+        checkMirageIsland()
+        wait(5) -- รอ 5 วินาทีก่อนตรวจสอบ Mirage อีกครั้ง
+    end
+end)()
+
+-- ลูปสำหรับการตรวจสอบและย้ายเซิร์ฟเวอร์ทุกๆ 10 วินาที
+coroutine.wrap(function()
+    while true do
+        if not mirageExists then -- ตรวจสอบว่า Mirage ไม่มีอยู่
+            checkForBestNodeAndTeleport()
+        else
+            print("Mirage Island มีอยู่ ไม่ตรวจสอบเซิร์ฟเวอร์ใหม่")
+        end
+        wait(0.1) -- รอ 10 วินาทีก่อนตรวจสอบอีกครั้ง
+    end
+end)()
