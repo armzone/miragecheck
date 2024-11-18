@@ -132,7 +132,7 @@ end
 coroutine.wrap(function()
     while true do
         checkMirageIsland()
-        wait(1) -- รอ 5 วินาทีก่อนตรวจสอบ Mirage อีกครั้ง
+        wait(3) -- รอ 5 วินาทีก่อนตรวจสอบ Mirage อีกครั้ง
     end
 end)()
 
