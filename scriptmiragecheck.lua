@@ -3,8 +3,11 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
--- URL ใหม่สำหรับดึงข้อมูล Mirage
+-- URL สำหรับดึงข้อมูล Mirage
 local serverUrl = "http://223.206.144.17:5000/Mirage"
+
+local mirageExists = false -- ตัวแปรสถานะ Mirage
+local attemptedServers = {} -- เก็บ jobid ที่ลองเข้าแล้วในรอบนี้
 
 -- สร้าง ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -27,7 +30,7 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = statusLabel
 
--- ฟังก์ชันสำหรับการดึงข้อมูลจาก URL ใหม่
+-- ฟังก์ชันสำหรับการดึงข้อมูลจาก API
 local function getLatestMessagesFromServer(url)
     local success, response = pcall(function()
         return game:HttpGet(url)
@@ -47,63 +50,45 @@ local function getLatestMessagesFromServer(url)
     end
 end
 
--- ฟังก์ชันสำหรับตรวจสอบเวลาให้อยู่ระหว่าง 13:00 ถึง 02:00
-local function isTimeInRange(timeStr)
-    local hour, minute = timeStr:match("(%d+):(%d+)")
-    hour = tonumber(hour)
-    minute = tonumber(minute)
-
-    if (hour >= 13 and hour < 24) or (hour >= 0 and hour < 2) then
-        return true
-    else
-        return false
-    end
-end
-
--- ฟังก์ชันสำหรับสุ่มเลือกโหนดที่มี players น้อยกว่า 12 และเวลาตรงตามเงื่อนไข
-local function selectBestNode(nodes)
-    local validNodes = {}
-
-    for _, node in pairs(nodes) do
-        if node.player_in_server and node.time then
-            local playersCount = tonumber(node.player_in_server:match("^(%d+)/%d+"))
-            if playersCount and playersCount < 12 and isTimeInRange(node.time) then
-                table.insert(validNodes, node)
-            end
+-- ฟังก์ชันสำหรับตรวจสอบว่า jobid ถูกลองแล้วหรือไม่
+local function isJobIdAttempted(jobid)
+    for _, attempted in pairs(attemptedServers) do
+        if attempted == jobid then
+            return true -- jobid นี้เคยลองเข้าแล้ว
         end
     end
+    return false
+end
 
-    table.sort(validNodes, function(a, b)
-        local timeA = tonumber(a.time:match("(%d+):%d+"))
-        local timeB = tonumber(b.time:match("(%d+):%d+"))
-        return timeA < timeB
-    end)
-
-    if #validNodes > 0 then
-        return validNodes[1] -- เลือกโหนดที่ดีที่สุด
-    else
-        return nil
+-- ฟังก์ชันสำหรับไล่เข้าเซิร์ฟเวอร์ทั้งหมด
+local function processAllServers(nodes)
+    for _, node in ipairs(nodes) do
+        if node.jobid and not isJobIdAttempted(node.jobid) then
+            print("กำลังลองเข้าเซิร์ฟเวอร์: " .. node.jobid)
+            local success, errorMessage = pcall(function()
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, node.jobid, Players.LocalPlayer)
+            end)
+            if not success then
+                print("ไม่สามารถเข้าเซิร์ฟเวอร์: " .. node.jobid .. " ได้ (" .. errorMessage .. ")")
+            end
+            table.insert(attemptedServers, node.jobid) -- บันทึกว่าเคยลองเข้าแล้ว
+            wait(2) -- รอ 2 วินาทีก่อนลองเซิร์ฟเวอร์ถัดไป
+        end
     end
 end
 
--- ฟังก์ชันหลักสำหรับตรวจสอบและเทเลพอร์ต
-local function checkForBestNodeAndTeleport()
+-- ฟังก์ชันหลักสำหรับดึงข้อมูลและไล่เข้าเซิร์ฟเวอร์
+local function fetchAndProcessServers()
     local latestMessages = getLatestMessagesFromServer(serverUrl)
 
     if latestMessages then
-        local selectedNode = selectBestNode(latestMessages)
-
-        if selectedNode and selectedNode.jobid then
-            local player = Players.LocalPlayer
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, selectedNode.jobid, player)
-        else
-            print("ไม่พบเซิร์ฟเวอร์ที่ตรงตามเงื่อนไข, กำลังรอ 10 วินาทีก่อนตรวจสอบอีกครั้ง...")
-            wait(10)
-        end
+        processAllServers(latestMessages)
     else
-        warn("ไม่พบข้อมูลจากเซิร์ฟเวอร์หรือไม่สามารถดึงข้อมูลได้")
-        wait(10)
+        warn("ไม่พบข้อมูลเซิร์ฟเวอร์หรือไม่สามารถดึงข้อมูลได้")
     end
+
+    -- เคลียร์รายการ attemptedServers เพื่อเตรียมสำหรับรอบใหม่
+    attemptedServers = {}
 end
 
 -- ฟังก์ชันสำหรับตรวจสอบ Mirage Island
@@ -123,27 +108,27 @@ while true do
     if game.PlaceId == 7449423635 then
         break
     else
-        wait(10)
+        wait(1)
         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelZou")
     end
 end
 
--- ลูปสำหรับการตรวจสอบ Mirage Island ทุกๆ 5 วินาที
+-- ลูปสำหรับการตรวจสอบ Mirage Island ทุกๆ 1 วินาที
 coroutine.wrap(function()
     while true do
         checkMirageIsland()
-        wait(3) -- รอ 5 วินาทีก่อนตรวจสอบ Mirage อีกครั้ง
+        wait(1)
     end
 end)()
 
--- ลูปสำหรับการตรวจสอบและย้ายเซิร์ฟเวอร์ทุกๆ 10 วินาที
+-- ลูปสำหรับการตรวจสอบและย้ายเซิร์ฟเวอร์
 coroutine.wrap(function()
     while true do
         if not mirageExists then -- ตรวจสอบว่า Mirage ไม่มีอยู่
-            checkForBestNodeAndTeleport()
+            fetchAndProcessServers()
         else
             print("Mirage Island มีอยู่ ไม่ตรวจสอบเซิร์ฟเวอร์ใหม่")
         end
-        wait(0.3) -- รอ 10 วินาทีก่อนตรวจสอบอีกครั้ง
+        wait(0.3) -- รอ 0.3 วินาทีก่อนตรวจสอบอีกครั้ง
     end
 end)()
