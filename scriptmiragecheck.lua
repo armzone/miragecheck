@@ -144,6 +144,6 @@ coroutine.wrap(function()
         else
             print("Mirage Island มีอยู่ ไม่ตรวจสอบเซิร์ฟเวอร์ใหม่")
         end
-        wait(0.5) -- รอ 10 วินาทีก่อนตรวจสอบอีกครั้ง
+        wait(0.3) -- รอ 10 วินาทีก่อนตรวจสอบอีกครั้ง
     end
 end)()
