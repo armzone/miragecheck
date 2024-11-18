@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 -- URL ใหม่สำหรับดึงข้อมูล Mirage
-local serverUrl = "http://223.206.145.158:5000/Mirage"
+local serverUrl = "http://223.206.144.17:5000/Mirage"
 
 -- สร้าง ScreenGui
 local screenGui = Instance.new("ScreenGui")
