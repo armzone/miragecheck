@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 -- URL สำหรับดึงข้อมูล Mirage
-local serverUrl = "http://223.206.144.17:5000/Mirage"
+local serverUrl = "http://223.205.84.47:5000/Mirage"
 
 local mirageExists = false -- ตัวแปรสถานะ Mirage
 local attemptedServers = {} -- เก็บ jobid ที่ลองเข้าแล้วในรอบนี้
